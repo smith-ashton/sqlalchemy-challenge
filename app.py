@@ -32,6 +32,7 @@ app = Flask(__name__)
 # Flask Routes
 #################################################
 
+# welcome page with list of options
 @app.route("/")
 def welcome():
     """List all available api routes."""
@@ -40,17 +41,17 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/yyyy-mm-dd (start date)"
+        f"/api/v1.0/yyyy-mm-dd (start date)<br/>"
         f"/api/v1.0/yyyy-mm-dd/yyyy-mm-dd (start date/end date)"
     )
 
-
+# list of precipitations
 @app.route("/api/v1.0/precipitation")
 def precip():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    # Query all passengers
+    # Query date and precipitation from all rows 
     results = session.query(measurement.date, measurement.prcp).all()
 
     session.close()
@@ -65,12 +66,13 @@ def precip():
 
     return jsonify(all_measure)
 
+# list of stations
 @app.route("/api/v1.0/stations")
 def stations():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    # Query all passengers
+    # Query all info from station
     results = session.query(station1.id, station1.station, station1.name, station1.latitude, station1.longitude, station1.elevation).all()
 
     session.close()
@@ -89,15 +91,17 @@ def stations():
 
     return jsonify(all_station)
 
+# last year of data
 @app.route("/api/v1.0/tobs")
 def tobs():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    # Query all passengers
+    # set dates
     start_date = dt.date(2017, 8, 23)
     query_date = dt.date(2017, 8, 23) - dt.timedelta(days=365)
     
+    # Query dates and tobs for station within date
     results = session.query(measurement.date, measurement.tobs).\
     filter(measurement.station == "USC00519281").\
     filter(measurement.date >= query_date).\
@@ -115,33 +119,40 @@ def tobs():
 
     return jsonify(all_tob)
 
-
+# stats from a start date
 @app.route('/api/v1.0/<date>')
 def startdate(date):
     
+    # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # query for stats
     min = session.query(func.min(measurement.tobs)).filter(measurement.date >= date)
     max = session.query(func.max(measurement.tobs)).filter(measurement.date >= date)
     avg = session.query(func.avg(measurement.tobs)).filter(measurement.date >= date)
     
     session.close()
 
+    # create list
     all_start = [{"Min: " : min[0][0]},{"Max: " : max[0][0]},{"Average:" : avg[0][0]}]
 
     return jsonify(all_start)
 
+# stats in a time frame
 @app.route('/api/v1.0/<start>/<end>')
 def timeframe(start,end):
     
+    # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # query for stats
     min = session.query(func.min(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
     max = session.query(func.max(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
     avg = session.query(func.avg(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
     
     session.close()
 
+    # create list
     all_frame = [{"Min: " : min[0][0]},{"Max: " : max[0][0]},{"Average:" : avg[0][0]}]
 
     return jsonify(all_frame)
