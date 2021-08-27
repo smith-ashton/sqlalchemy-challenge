@@ -40,7 +40,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        "/api/v1.0/yyyy-mm-dd"
+        f"/api/v1.0/yyyy-mm-dd (start date)"
+        f"/api/v1.0/yyyy-mm-dd/yyyy-mm-dd (start date/end date)"
     )
 
 
@@ -116,15 +117,9 @@ def tobs():
 
 
 @app.route('/api/v1.0/<date>')
-def tester(date):
+def startdate(date):
     
     session = Session(engine)
-
-    # results = session.query(measurement.station, \
-    #     func.max(measurement.tobs),\
-    #     func.min(measurement.tobs),\
-    #     func.avg(measurement.tobs)).\
-    #     filter(measurement.date >= date).all()
 
     min = session.query(func.min(measurement.tobs)).filter(measurement.date >= date)
     max = session.query(func.max(measurement.tobs)).filter(measurement.date >= date)
@@ -133,60 +128,24 @@ def tester(date):
     session.close()
 
     all_start = [{"Min: " : min[0][0]},{"Max: " : max[0][0]},{"Average:" : avg[0][0]}]
-    # for max, min, avg in results:
-    #     start_dict = {}
-    #     start_dict["Max"] = max
-    #     start_dict["Min"] = min
-    #     start_dict["Avg"] = avg
-    #     all_start.append(start_dict)
 
     return jsonify(all_start)
 
-# @app.route("/api/v1.0/<date>")
-# def start(date):
-#     # Create our session (link) from Python to the DB
-#     session = Session(engine)
+@app.route('/api/v1.0/<start>/<end>')
+def timeframe(start,end):
+    
+    session = Session(engine)
 
-#     # Query all passengers
-#     results = session.query(measurement.date, measurement.tobs).all()
+    min = session.query(func.min(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
+    max = session.query(func.max(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
+    avg = session.query(func.avg(measurement.tobs)).filter(measurement.date >= start).filter(measurement.date <= end)
+    
+    session.close()
 
-#     session.close()
-#     # Convert list of tuples into normal list
-#     all_measure = []
-#     for date, tobs in results:
-#         measure_dict = {}
-#         measure_dict["Date"] = date
-#         measure_dict["TOBS"] = tobs
-#         all_measure.append(measure_dict)
+    all_frame = [{"Min: " : min[0][0]},{"Max: " : max[0][0]},{"Average:" : avg[0][0]}]
 
-#     canonicalized = date.replace("-", "")
-#     for row in all_measure:
-#         search_term = all_measure["Date"].replace("-", "")
+    return jsonify(all_frame)
 
-#         if search_term == canonicalized:
-#             search_date = all_measure["Date"]
-#     return (search_date)
-    # session = Session(engine)
-
-    # results = session.query(measurement.station, \
-    #     func.max(measurement.tobs),\
-    #     func.min(measurement.tobs),\
-    #     func.avg(measurement.tobs)).\
-    #     filter(measurement.station == "USC00519281").\
-    #     filter(measurement.date >= search_date).all()
-
-    # session.close()
-
-    # # Convert list of tuples into normal list
-    # all_start = []
-    # for max, min, avg in results:
-    #     start_dict = {}
-    #     start_dict["Max"] = max
-    #     start_dict["Min"] = min
-    #     start_dict["Avg"] = avg
-    #     all_start.append(start_dict)
-
-    # return jsonify(all_start)
 
 if __name__ == '__main__':
     app.run(debug=True)
